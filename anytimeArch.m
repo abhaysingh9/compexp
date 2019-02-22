@@ -1,18 +1,23 @@
 function [] = anytime(A,win,comp,exp,sweep)
     % brute force
-    
-    [bsfarproper, timematproper] = comexpany(A,win,comp,exp,sweep);
-    [bsfarrandom, timematrandom] = randomany(A,win,comp,exp,sweep);
+
+    [bsfarproper, timematproper,winc,wincm] = comexpany(A,win,comp,exp,sweep);
+    [bsfarrandom, timematrandom,winr,winrm] = randomany(A,win,comp,exp,sweep);
     figure
-    plot(timematproper,bsfarproper, '-o');hold on; plot(timematrandom,bsfarrandom) 
+    subplot(3,1,1)
+    plot(timematproper,bsfarproper, '-o');hold on; plot(timematrandom,bsfarrandom)
+    subplot(3,1,2)
+    plot(zeroOneNorm(winc)); hold on; plot(zeroOneNorm(wincm));
+    subplot(3,1,3)
+    plot(zeroOneNorm(winr)); hold on; plot(zeroOneNorm(winrm));
 end
 
-function [bestsofar, timerandom] = randomany(A,win,comp,exp,sweep)
+function [bestsofar, timerandom, win1, win2] = randomany(A,win,comp,exp,sweep)
     tic;
     toc
     cMat = [];
     bestsofar = inf;
-    timec = 0;
+    timec = 1;
     for i = comp:sweep:exp
         if (i~=1)
             check = cMat';
@@ -28,11 +33,13 @@ function [bestsofar, timerandom] = randomany(A,win,comp,exp,sweep)
         winr = randi([1,length(winsel)],1,1);
         winsel(winr) = []; 
         temp = MASS(cMat,A(winr:winr+win-1));
-        bestsofartemp = min(temp); % To be changed with min of non excluded
-        if(bestsofartemp<bestsofar)
+        [bestsofartemp, indexBest] = min(temp); % To be changed with min of non excluded
+        if(bestsofartemp < bestsofar(timec))
             timec=timec+1;
             bestsofar(timec)=bestsofartemp;
             timerandom(timec) = toc;
+            win1 = A(winr:winr+win-1);
+            win2 = cMat(indexBest:indexBest+win-1);
         end
         
         if(timerandom(timec)-toc > 0.01)
@@ -50,33 +57,28 @@ end
 
 
 
-function [bsfar,times] = comexpany(A,win,comp,exp,sweep)
+function [bsfar,times,win1,win2] = comexpany(A,win,comp,exp,sweep)
     tic;
     toc
     bsfar = inf;                     
     times = 0;
     warning('off','all');
-    if(mod(1-comp,sweep)<0.0000000000000001)
-        Profilelength = length(comp:sweep:exp)-1; 
-    else 
-        Profilelength = length(comp:sweep:exp); 
-    end
-    MatrixProfileLength = Profilelength; 
-    MP = zeros(MatrixProfileLength, 1);
-    MPi = zeros(MatrixProfileLength, 3);
     counter = 1;
-    timec = 0;
+    timec = 1;
     for i = comp:sweep:exp 
         if(i~=1)
             [MatrixProfile, MPindex] = ...
                 StompABJoin(A,A(1:i:length(A)),win);
-            [MP,~] = findvaluelow(MatrixProfile,MPindex, win, i);... min(MatrixProfile);
+            [MPval,indexMP] = findvaluelow(MatrixProfile,MPindex, win, i);... min(MatrixProfile);
             counter = counter + 1;
-            bsfartemp = min(MP);
-            if(bsfartemp<bsfar) 
+            bsfartemp = min(MPval);
+            if(bsfartemp<bsfar(timec)) 
                 timec = timec+1;
                 bsfar(timec) = bsfartemp;
                 times(timec) = toc;
+                win1 = A(indexMP:indexMP+win-1);
+                temp = A(1:i:length(A));
+                win2 = temp(MPindex(indexMP):MPindex(indexMP)+win-1);
             end
             if(times(timec)-toc > 0.01)
                 bsfar(timec)=bestsofartemp;
@@ -100,4 +102,11 @@ function [val, ind] = findvaluelow(MatrixProfile,MPi,win,rate)
     end
     ind = indx;
     val = MatrixProfile(ind);
+end
+
+
+function x = zeroOneNorm(x)
+x = x - min(x(~isinf(x) & ~isnan(x)));
+x = x / max(x(~isinf(x) & ~isnan(x)));
+
 end
