@@ -21,7 +21,7 @@ function [bestsofar, timerandom, win1, win2] = randomany(A,win,comp,exp,sweep)
     for i = comp:sweep:exp
         if (i~=1)
             check = cMat';
-            tempee = A(1:i:length(A));
+            tempee = A(1:i:length(A))+1000;
             cMat = [check, tempee'];
             cMat = cMat';
         end
@@ -33,7 +33,7 @@ function [bestsofar, timerandom, win1, win2] = randomany(A,win,comp,exp,sweep)
         winr = randi([1,length(winsel)],1,1);
         winsel(winr) = []; 
         temp = MASS(cMat,A(winr:winr+win-1));
-        [bestsofartemp, indexBest] = min(temp); % To be changed with min of non excluded
+        [bestsofartemp, indexBest] = min(minP(A,temp,winr,win,comp,sweep,exp)); % To be changed with min of non excluded
         if(bestsofartemp < bestsofar(timec))
             timec=timec+1;
             bestsofar(timec)=bestsofartemp;
@@ -51,8 +51,26 @@ function [bestsofar, timerandom, win1, win2] = randomany(A,win,comp,exp,sweep)
 end
 
 
-function [sprofile] = consolidate(tempmin)
-
+function [temp] = minP(A,temp,winr,win,comp,sweep,exp)
+    lensofar = 0;
+    for j = comp:sweep:exp
+        if(j~=1)
+            point = ceil(lensofar + winr/j);
+            paddingleft = -win + 1;
+            paddingright = win - 1;
+            if(point + paddingleft < 1)
+               paddingleft = -point + 1; 
+            end
+            curlen = length(A(1:j:end));
+            if(point + paddingright > lensofar+ curlen)
+               paddingright = lensofar + curlen - point + 1;
+            end
+            for i = point+paddingleft:1:point+paddingright
+                temp(i) = inf; 
+            end
+            lensofar = lensofar + curlen;
+        end
+    end
 end
 
 
