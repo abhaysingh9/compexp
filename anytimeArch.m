@@ -5,7 +5,7 @@ function [] = anytime(A,win,comp,exp,sweep)
     [bsfarrandom, timematrandom,winr,winrm] = randomany(A,win,comp,exp,sweep);
     figure
     subplot(3,1,1)
-    plot(timematproper,bsfarproper, '-o');hold on; plot(timematrandom,bsfarrandom)
+    plot(timematproper,bsfarproper);hold on; plot(timematrandom,bsfarrandom)
     subplot(3,1,2)
     plot(zeroOneNorm(winc)); hold on; plot(zeroOneNorm(wincm));
     subplot(3,1,3)
@@ -42,9 +42,9 @@ function [bestsofar, timerandom, win1, win2] = randomany(A,win,comp,exp,sweep)
             win2 = cMat(indexBest:indexBest+win-1);
         end
         
-        if(timerandom(timec)-toc > 0.01)
+        if(toc - timerandom(timec) > 0.01)
             timec=timec+1;
-            bestsofar(timec)=bestsofartemp;
+            bestsofar(timec)=bestsofar(timec - 1);
             timerandom(timec) = toc;
         end
     end
@@ -90,7 +90,7 @@ function [bsfar,times,win1,win2] = comexpany(A,win,comp,exp,sweep)
             [MPval,indexMP] = findvaluelow(MatrixProfile,MPindex, win, i);... min(MatrixProfile);
             counter = counter + 1;
             bsfartemp = min(MPval);
-            if(bsfartemp<bsfar(timec)) 
+            if(bsfartemp<=bsfar(timec)) 
                 timec = timec+1;
                 bsfar(timec) = bsfartemp;
                 times(timec) = toc;
@@ -98,10 +98,11 @@ function [bsfar,times,win1,win2] = comexpany(A,win,comp,exp,sweep)
                 temp = A(1:i:length(A));
                 win2 = temp(MPindex(indexMP):MPindex(indexMP)+win-1);
             end
-            if(times(timec)-toc > 0.01)
-                bsfar(timec)=bestsofartemp;
-                times(timec) = toc;
+            if(toc - times(timec) > 0.01)
                 timec=timec+1;
+                bsfar(timec)=bsfar(timec-1);
+                times(timec) = toc;
+                
             end
         end
     end
@@ -110,7 +111,7 @@ end
 function [val, ind] = findvaluelow(MatrixProfile,MPi,win,rate)
 
     [e,indx] = min(MatrixProfile);
-    while(((indx/rate) > MPi(indx)-win) & ((indx/rate) < (MPi(indx)+win-1)))
+    while((ceil(indx/rate) > MPi(indx)-win+1) & (ceil(indx/rate) < (MPi(indx)+win-1)))
         if(e == inf) 
             val = e; ind = indx;
             return;
