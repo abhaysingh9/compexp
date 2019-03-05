@@ -29,9 +29,11 @@ function [bestsofar, timerandom, win1, win2] = randomany(A,win,comp,exp,sweep)
     winsel = 1:1:(length(A)-win+1);
     % Algorithm Random
     completion = 0;
-    for i = 1:length(A)-win+1
-        winr = randi([1,length(winsel)],1,1);
-        winsel(winr) = []; 
+    collection = [];
+    while(length(winsel) ~= 0)
+        winr = winsel(randi([1,length(winsel)],1,1));
+        winsel(winsel==winr) = []; 
+        collection = [collection winr];
         temp = MASS(cMat,A(winr:winr+win-1));
         [bestsofartemp, indexBest] = min(minP(A,temp,winr,win,comp,sweep,exp)); % To be changed with min of non excluded
         if(bestsofartemp < bestsofar(timec))
@@ -52,23 +54,41 @@ end
 
 
 function [temp] = minP(A,temp,winr,win,comp,sweep,exp)
+  %{
+    len = 0; counter = 1;
+    for j = comp:sweep:exp
+        forbidden(counter) = winr/j + len ;
+        len = length(A(1:j:end));
+        counter = counter + 1;
+    end
+    [val, minind] = min(temp);
+    while(((minind) > (forbidden - win)) && ((minind )> (forbidden - win)))
+       if(val == inf) 
+           return;
+       end
+       temp(minind) = inf;
+       [val,minind] = min(temp);
+    end
+    
+%}
     lensofar = 0;
     for j = comp:sweep:exp
         if(j~=1)
-            point = ceil(lensofar + winr/j);
-            paddingleft = -win + 1;
+            point = lensofar + ceil(winr/j);
+            paddingleft = - win + 1 ;
             paddingright = win - 1;
-            if(point + paddingleft < 1)
-               paddingleft = -point + 1; 
+            if( point + paddingleft < 1)
+               paddingleft = -point ; 
             end
             curlen = length(A(1:j:end));
             if(point + paddingright > length(temp))
-               paddingright = length(temp) - point + 1;
+               paddingright = length(temp) - point ;
             end
-            temp(point+paddingleft:point+paddingright) = inf; 
+            temp(point+paddingleft+1:point+paddingright-1) = inf;
             lensofar = lensofar + curlen;
         end
     end
+    %}
 end
 
 
@@ -81,6 +101,7 @@ function [bsfar,times,win1,win2] = comexpany(A,win,comp,exp,sweep)
     warning('off','all');
     counter = 1;
     timec = 1;
+    index = inf;
     for i = comp:sweep:exp 
         if(i~=1)
             [MatrixProfile, MPindex] = ...
@@ -95,6 +116,7 @@ function [bsfar,times,win1,win2] = comexpany(A,win,comp,exp,sweep)
                 win1 = A(indexMP:indexMP+win-1);
                 temp = A(1:i:length(A));
                 win2 = temp(MPindex(indexMP):MPindex(indexMP)+win-1);
+                index = indexMP; 
             end
             if(toc - times(timec) > 0.01)
                 timec=timec+1;
@@ -107,9 +129,15 @@ function [bsfar,times,win1,win2] = comexpany(A,win,comp,exp,sweep)
 end
 
 function [val, ind] = findvaluelow(MatrixProfile,MPi,win,rate)
-
+%{
+    for i = (1:1:MatrixProfile)
+        if(ceil(i/rate) > MPi(i) - win +1 && ceil(i/rate)< MPi(i)+win -1 )
+            MatrixProfile(i-win+1:i+win-1) = inf;  
+        end
+    end
+%}
     [e,indx] = min(MatrixProfile);
-    while((ceil(indx/rate) > MPi(indx)-win+1) & (ceil(indx/rate) < (MPi(indx)+win-1)))
+    while((ceil(indx/rate) > MPi(indx)-win/2+1) && (ceil(indx/rate) < (MPi(indx)+win/2-1)))
         if(e == inf) 
             val = e; ind = indx;
             return;
